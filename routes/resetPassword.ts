@@ -38,15 +38,15 @@ export function resetPassword () {
           where: { email }
         }]
       })
-      if ((data != null) && security.hmac(answer) === data.answer) {
+      if ((data != null) && security.hmac(answer) === data.answer && body.resetToken != null && body.resetToken === emailResetTokens.get(email)?.token && !emailResetTokens.get(email)?.expired()) {
         const user = await UserModel.findByPk(data.UserId)
         if (user) {
           const updatedUser = await user.update({ password: newPassword })
-          verifySecurityAnswerChallenges(updatedUser, answer)
-          res.json({ user: updatedUser })
+          emailResetTokens.delete(email)
+          res.json({ user: { id: updatedUser.id, email: updatedUser.email } })
         }
       } else {
-        res.status(401).send(res.__('Wrong answer to security question.'))
+        res.status(401).send(res.__('Wrong answer to security question or expired reset token.'))
       }
     } catch (error) {
       next(error)
